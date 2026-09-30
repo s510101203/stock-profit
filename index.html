@@ -3,86 +3,166 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f5f6f8">
+<meta name="theme-color" content="#f4f6f8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>每日股票損益</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f5f6f8;color:#17191c;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
-main{max-width:760px;margin:auto;padding:18px 14px 60px}h1{font-size:27px;margin:6px 0}p{color:#70757d;font-size:13px;line-height:1.55}
-.card{background:#fff;border-radius:18px;padding:16px;margin:13px 0;box-shadow:0 2px 10px #0000000a}h2{font-size:17px;margin:0 0 14px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;font-size:13px;color:#70757d;margin-bottom:6px}
-input{width:100%;padding:13px;border:1px solid #e1e4e8;border-radius:12px;font-size:16px;background:#fff}
-button{width:100%;padding:13px;border:0;border-radius:12px;background:#17191c;color:#fff;font-size:16px;font-weight:700}
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:#f7f8fa;border-radius:14px;padding:13px}.hero{grid-column:1/-1}.metric small{display:block;color:#70757d;margin-bottom:6px}.metric strong{font-size:21px}.hero strong{font-size:29px}
-.pos{color:#07864f}.neg{color:#d13b3b}.msg{display:none;margin-top:10px;padding:10px;border-radius:10px;background:#eaf8f0;color:#087445}
-table{width:100%;border-collapse:collapse;font-size:13px;min-width:610px}th,td{padding:10px 6px;border-bottom:1px solid #e5e7eb;text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}.scroll{overflow:auto}
-.del{width:auto;padding:6px 9px;background:#eef0f3;color:#333;font-size:12px}.empty{text-align:center!important;color:#777!important}
-@media(max-width:520px){.grid{grid-template-columns:1fr}}
+:root{--bg:#f4f6f8;--card:#fff;--text:#17191c;--muted:#747982;--line:#e5e7eb;--green:#168653;--red:#d13d3d;--dark:#17191c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
+main{max-width:820px;margin:auto;padding:18px 14px 60px}h1{font-size:28px;margin:5px 0 4px}h2{font-size:18px;margin:0 0 14px}.sub,.note{color:var(--muted);font-size:13px;line-height:1.55}
+.card{background:var(--card);border-radius:20px;padding:17px;margin:14px 0;box-shadow:0 2px 12px #0000000a}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+input{width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:16px}
+button{border:0;border-radius:12px;padding:12px;font-size:15px;font-weight:700;background:var(--dark);color:#fff}.wide{width:100%}.secondary{background:#eef0f3;color:#222}.danger{background:#fff0f0;color:#b52d2d}
+.actions{display:flex;gap:9px}.actions>*{flex:1}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:#f7f8fa;border-radius:15px;padding:14px}.hero{grid-column:1/-1}.metric small{display:block;color:var(--muted);margin-bottom:7px}.metric strong{font-size:21px}.hero strong{font-size:30px}
+.pos{color:var(--green)}.neg{color:var(--red)}
+canvas{display:block;width:100%;height:220px}
+.scroll{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px;font-size:13px}th,td{padding:10px 7px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}
+.smallbtn{width:auto;padding:6px 9px;font-size:12px}.msg{display:none;margin-top:10px;padding:10px 12px;border-radius:10px;background:#eaf8f0;color:#087445}.empty{text-align:center!important;color:var(--muted)!important;padding:20px!important}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef0f3;color:#555;font-size:11px;margin-left:6px}
+@media(max-width:540px){.grid{grid-template-columns:1fr}.metric strong{font-size:19px}.hero strong{font-size:28px}}
 </style></head>
 <body><main>
-<h1>📈 每日股票損益</h1>
-<p>每天記錄總資產，入金／出金會自動排除，不會把定期定額誤算成獲利。</p>
+<h1>📈 每日股票損益 <span class="badge">v2</span></h1>
+<div class="sub">排除定期定額與額外入金，追蹤真正的每日、每月與年度投資績效。</div>
 
-<section class="card"><h2>今日紀錄</h2>
+<section class="card"><h2 id="formTitle">新增每日紀錄</h2>
 <div class="grid">
 <div><label>日期</label><input id="date" type="date"></div>
-<div><label>今日投資總資產</label><input id="asset" type="number" inputmode="decimal" placeholder="例如 2500000"></div>
+<div><label>今日投資總資產（股票市值＋帳戶現金）</label><input id="asset" type="number" inputmode="decimal" placeholder="例如 2500000"></div>
 <div><label>今日外部入金</label><input id="deposit" type="number" inputmode="decimal" value="0"></div>
 <div><label>今日外部出金</label><input id="withdraw" type="number" inputmode="decimal" value="0"></div>
 </div>
-<p>總資產請填「股票目前市值＋投資帳戶內現金」。單純買股、賣股不用填入金／出金。</p>
-<button id="save">儲存今日紀錄</button><div id="msg" class="msg">✓ 已儲存</div>
+<p class="note">買股、賣股本身不算入金／出金。只有外部資金進入投資帳戶或從投資帳戶提出才填。</p>
+<div class="actions"><button id="save">儲存紀錄</button><button id="cancelEdit" class="secondary" style="display:none">取消編輯</button></div>
+<div id="msg" class="msg"></div>
 </section>
 
-<section class="card"><h2>績效</h2><div class="metrics">
-<div class="metric hero"><small>最新一日真正損益</small><strong id="daily">—</strong></div>
+<section class="card"><h2>績效總覽</h2><div class="metrics">
+<div class="metric hero"><small id="latestLabel">最新一日真正損益</small><strong id="daily">—</strong></div>
 <div class="metric"><small>本月累計損益</small><strong id="monthly">—</strong></div>
+<div class="metric"><small>本月報酬率</small><strong id="monthRate">—</strong></div>
 <div class="metric"><small>今年累計損益</small><strong id="yearly">—</strong></div>
+<div class="metric"><small>今年報酬率</small><strong id="yearRate">—</strong></div>
 <div class="metric"><small>目前總資產</small><strong id="current">—</strong></div>
-<div class="metric"><small>本月外部淨投入</small><strong id="flow">—</strong></div>
+<div class="metric"><small>累計外部淨投入</small><strong id="allFlow">—</strong></div>
 </div></section>
 
+<section class="card"><h2>本月累積損益</h2><canvas id="dailyChart"></canvas></section>
+<section class="card"><h2>各月份損益</h2><canvas id="monthChart"></canvas></section>
+
 <section class="card"><h2>每日紀錄</h2><div class="scroll"><table>
-<thead><tr><th>日期</th><th>總資產</th><th>入金</th><th>出金</th><th>真正損益</th><th></th></tr></thead>
+<thead><tr><th>日期</th><th>總資產</th><th>入金</th><th>出金</th><th>當日損益</th><th>當日報酬</th><th>操作</th></tr></thead>
 <tbody id="rows"></tbody></table></div></section>
+
+<section class="card"><h2>備份與還原</h2>
+<div class="actions"><button id="export" class="secondary">匯出備份</button><button id="import" class="secondary">匯入備份</button></div>
+<input id="file" type="file" accept=".json,application/json" style="display:none">
+<p class="note">資料主要存在目前這個 Web App／瀏覽器。換手機、清除網站資料前，建議先匯出備份。</p>
+</section>
 </main>
 <script>
-const KEY="stock-profit-data-v1";
-const $=x=>document.getElementById(x);
-const money=n=>new Intl.NumberFormat("zh-TW",{maximumFractionDigits:0}).format(n);
-const sign=n=>(n>=0?"+":"")+money(n)+" 元";
-function get(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){return[]}}
-function set(a){localStorage.setItem(KEY,JSON.stringify(a))}
-function calculate(){
- let a=get().sort((x,y)=>x.date.localeCompare(y.date));
- return a.map((x,i)=>({...x,profit:i===0?null:x.asset-a[i-1].asset-x.deposit+x.withdraw}));
-}
-function color(e,n){e.className=n>=0?"pos":"neg"}
-function render(){
- const a=calculate(), tbody=$("rows");tbody.innerHTML="";
- if(!a.length){tbody.innerHTML='<tr><td colspan="6" class="empty">還沒有紀錄</td></tr>';["daily","monthly","yearly","current","flow"].forEach(x=>$(x).textContent="—");return}
- [...a].reverse().forEach(x=>{
-   let tr=document.createElement("tr");
-   tr.innerHTML=`<td>${x.date}</td><td>${money(x.asset)}</td><td>${money(x.deposit)}</td><td>${money(x.withdraw)}</td><td class="${x.profit===null?"":x.profit>=0?"pos":"neg"}">${x.profit===null?"基準日":sign(x.profit)}</td><td><button class="del" data-d="${x.date}">刪除</button></td>`;
-   tbody.appendChild(tr);
+const KEY="stock-profit-data-v1"; // 與 v1 相同，保留既有資料
+const $=id=>document.getElementById(id);
+const fmt=n=>new Intl.NumberFormat("zh-TW",{maximumFractionDigits:0}).format(n);
+const sgn=n=>(n>=0?"+":"")+fmt(n)+" 元";
+let editing=null;
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){return[]}}
+function saveData(a){localStorage.setItem(KEY,JSON.stringify(a))}
+function calc(){
+ const a=load().sort((x,y)=>x.date.localeCompare(y.date));
+ return a.map((x,i)=>{
+   const prev=i?a[i-1].asset:null;
+   const p=prev===null?null:x.asset-prev-x.deposit+x.withdraw;
+   const capital=prev===null?null:prev+x.deposit-x.withdraw;
+   return {...x,profit:p,rate:p!==null&&capital>0?p/capital*100:null};
  });
- document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{if(confirm("刪除 "+b.dataset.d+"？")){set(get().filter(x=>x.date!==b.dataset.d));render()}});
- const last=a[a.length-1], month=last.date.slice(0,7), year=last.date.slice(0,4);
- const ma=a.filter(x=>x.date.startsWith(month)), ya=a.filter(x=>x.date.startsWith(year));
- const mp=ma.reduce((s,x)=>s+(x.profit||0),0), yp=ya.reduce((s,x)=>s+(x.profit||0),0);
- const mf=ma.reduce((s,x)=>s+x.deposit-x.withdraw,0);
- $("daily").textContent=last.profit===null?"基準日":sign(last.profit); if(last.profit!==null)color($("daily"),last.profit);
- $("monthly").textContent=sign(mp);color($("monthly"),mp);
- $("yearly").textContent=sign(yp);color($("yearly"),yp);
- $("current").textContent=money(last.asset)+" 元";
- $("flow").textContent=sign(mf);color($("flow"),mf);
 }
+function paint(id,n,suffix=" 元"){
+ const e=$(id); if(n===null||n===undefined){e.textContent="—";e.className="";return}
+ e.textContent=(n>=0?"+":"")+fmt(n)+suffix;e.className=n>=0?"pos":"neg";
+}
+function approxReturn(arr){
+ if(!arr.length)return 0;
+ const p=arr.reduce((s,x)=>s+(x.profit||0),0);
+ const first=arr[0], start=first.profit===null?first.asset:(arr.length>1?arr[0].asset:arr[0].asset);
+ const flow=arr.reduce((s,x)=>s+x.deposit-x.withdraw,0);
+ const base=start+flow/2;
+ return base>0?p/base*100:0;
+}
+function render(){
+ const a=calc(),tb=$("rows");tb.innerHTML="";
+ if(!a.length){
+   tb.innerHTML='<tr><td colspan="7" class="empty">尚無紀錄</td></tr>';
+   ["daily","monthly","monthRate","yearly","yearRate","current","allFlow"].forEach(x=>$(x).textContent="—");
+   drawLine([]);drawBars([]);return;
+ }
+ [...a].reverse().forEach(x=>{
+   const tr=document.createElement("tr");
+   tr.innerHTML=`<td>${x.date}</td><td>${fmt(x.asset)}</td><td>${fmt(x.deposit)}</td><td>${fmt(x.withdraw)}</td>
+   <td class="${x.profit===null?"":x.profit>=0?"pos":"neg"}">${x.profit===null?"基準日":sgn(x.profit)}</td>
+   <td class="${x.rate===null?"":x.rate>=0?"pos":"neg"}">${x.rate===null?"—":(x.rate>=0?"+":"")+x.rate.toFixed(2)+"%"}</td>
+   <td><button class="secondary smallbtn edit" data-d="${x.date}">編輯</button> <button class="danger smallbtn del" data-d="${x.date}">刪除</button></td>`;
+   tb.appendChild(tr);
+ });
+ document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{if(confirm("刪除 "+b.dataset.d+"？")){saveData(load().filter(x=>x.date!==b.dataset.d));render()}});
+ document.querySelectorAll(".edit").forEach(b=>b.onclick=()=>startEdit(b.dataset.d));
+ const last=a[a.length-1],ym=last.date.slice(0,7),yr=last.date.slice(0,4);
+ const ma=a.filter(x=>x.date.startsWith(ym)),ya=a.filter(x=>x.date.startsWith(yr));
+ const mp=ma.reduce((s,x)=>s+(x.profit||0),0),yp=ya.reduce((s,x)=>s+(x.profit||0),0);
+ $("latestLabel").textContent=last.date+" 真正損益";
+ if(last.profit===null){$("daily").textContent="基準日";$("daily").className=""}else paint("daily",last.profit);
+ paint("monthly",mp); paint("yearly",yp);
+ const mr=approxReturn(ma),yrt=approxReturn(ya);
+ $("monthRate").textContent=(mr>=0?"+":"")+mr.toFixed(2)+"%";$("monthRate").className=mr>=0?"pos":"neg";
+ $("yearRate").textContent=(yrt>=0?"+":"")+yrt.toFixed(2)+"%";$("yearRate").className=yrt>=0?"pos":"neg";
+ $("current").textContent=fmt(last.asset)+" 元";$("current").className="";
+ const flow=a.reduce((s,x)=>s+x.deposit-x.withdraw,0);paint("allFlow",flow);
+ let cum=0;drawLine(ma.map(x=>({label:x.date.slice(8),value:(cum+=(x.profit||0))})));
+ const months={};a.forEach(x=>{const m=x.date.slice(0,7);months[m]=(months[m]||0)+(x.profit||0)});
+ drawBars(Object.entries(months).map(([label,value])=>({label,value})).slice(-12));
+}
+function startEdit(d){
+ const x=load().find(r=>r.date===d);if(!x)return;editing=d;
+ $("date").value=x.date;$("asset").value=x.asset;$("deposit").value=x.deposit;$("withdraw").value=x.withdraw;
+ $("formTitle").textContent="編輯 "+d;$("save").textContent="儲存修改";$("cancelEdit").style.display="block";window.scrollTo({top:0,behavior:"smooth"});
+}
+function resetForm(){
+ editing=null;$("formTitle").textContent="新增每日紀錄";$("save").textContent="儲存紀錄";$("cancelEdit").style.display="none";
+ $("asset").value="";$("deposit").value="0";$("withdraw").value="0";
+ const d=new Date();$("date").value=new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
+$("cancelEdit").onclick=resetForm;
 $("save").onclick=()=>{
- const date=$("date").value, av=$("asset").value;
- if(!date||av===""){alert("請填日期與今日總資產");return}
+ const date=$("date").value,av=$("asset").value;if(!date||av===""){alert("請填日期與總資產");return}
  const x={date,asset:Number(av),deposit:Number($("deposit").value||0),withdraw:Number($("withdraw").value||0)};
- let a=get().filter(r=>r.date!==date);a.push(x);a.sort((x,y)=>x.date.localeCompare(y.date));set(a);
- $("asset").value="";$("deposit").value="0";$("withdraw").value="0";render();
- $("msg").style.display="block";setTimeout(()=>$("msg").style.display="none",1800);
+ if([x.asset,x.deposit,x.withdraw].some(n=>!Number.isFinite(n)||n<0)){alert("金額格式不正確");return}
+ let a=load().filter(r=>r.date!==(editing||date) && r.date!==date);a.push(x);a.sort((x,y)=>x.date.localeCompare(y.date));saveData(a);
+ resetForm();render();$("msg").textContent="✓ 已儲存";$("msg").style.display="block";setTimeout(()=>$("msg").style.display="none",1800);
 };
-const d=new Date();$("date").value=new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10);render();
+$("export").onclick=()=>{
+ const blob=new Blob([JSON.stringify({version:2,exported:new Date().toISOString(),records:load()},null,2)],{type:"application/json"});
+ const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="股票損益備份.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);
+};
+$("import").onclick=()=>$("file").click();
+$("file").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{try{const j=JSON.parse(r.result),a=Array.isArray(j)?j:j.records;if(!Array.isArray(a))throw 0;if(confirm("匯入會覆蓋目前資料，確定？")){saveData(a);render();alert("還原完成")}}catch(e){alert("備份檔格式不正確")}};r.readAsText(f);
+};
+function setup(c){const dpr=devicePixelRatio||1,w=c.clientWidth||700,h=220;c.width=w*dpr;c.height=h*dpr;const x=c.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);return{x,w,h}}
+function drawLine(data){
+ const c=$("dailyChart"),{x,w,h}=setup(c);if(!data.length){x.fillStyle="#777";x.textAlign="center";x.font="14px sans-serif";x.fillText("有資料後顯示",w/2,h/2);return}
+ const vals=data.map(d=>d.value),mn=Math.min(0,...vals),mx=Math.max(0,...vals)+(Math.max(...vals)===Math.min(...vals)?1:0),p=30;
+ const X=i=>p+(data.length===1?(w-2*p)/2:i*(w-2*p)/(data.length-1)),Y=v=>h-p-(v-mn)*(h-2*p)/(mx-mn||1);
+ x.strokeStyle="#ddd";x.beginPath();x.moveTo(p,Y(0));x.lineTo(w-p,Y(0));x.stroke();x.strokeStyle="#222";x.lineWidth=2.2;x.beginPath();data.forEach((d,i)=>i?x.lineTo(X(i),Y(d.value)):x.moveTo(X(i),Y(d.value)));x.stroke();
+}
+function drawBars(data){
+ const c=$("monthChart"),{x,w,h}=setup(c);if(!data.length){x.fillStyle="#777";x.textAlign="center";x.font="14px sans-serif";x.fillText("有資料後顯示",w/2,h/2);return}
+ const vals=data.map(d=>d.value),abs=Math.max(1,...vals.map(Math.abs)),mid=h/2,bw=Math.max(8,(w-40)/data.length*.55);
+ x.strokeStyle="#ddd";x.beginPath();x.moveTo(20,mid);x.lineTo(w-20,mid);x.stroke();
+ data.forEach((d,i)=>{const cx=20+(i+.5)*(w-40)/data.length,hh=Math.abs(d.value)/abs*(h/2-35);x.fillStyle=d.value>=0?"#168653":"#d13d3d";x.fillRect(cx-bw/2,d.value>=0?mid-hh:mid,bw,hh);x.fillStyle="#777";x.font="10px sans-serif";x.textAlign="center";x.fillText(d.label.slice(5),cx,h-7)});
+}
+resetForm();render();window.addEventListener("resize",render);
 </script></body></html>
