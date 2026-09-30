@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f6f8">
+<title>每日股票損益</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f6f8;color:#17191c;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
+main{max-width:760px;margin:auto;padding:18px 14px 60px}h1{font-size:27px;margin:6px 0}p{color:#70757d;font-size:13px;line-height:1.55}
+.card{background:#fff;border-radius:18px;padding:16px;margin:13px 0;box-shadow:0 2px 10px #0000000a}h2{font-size:17px;margin:0 0 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;font-size:13px;color:#70757d;margin-bottom:6px}
+input{width:100%;padding:13px;border:1px solid #e1e4e8;border-radius:12px;font-size:16px;background:#fff}
+button{width:100%;padding:13px;border:0;border-radius:12px;background:#17191c;color:#fff;font-size:16px;font-weight:700}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:#f7f8fa;border-radius:14px;padding:13px}.hero{grid-column:1/-1}.metric small{display:block;color:#70757d;margin-bottom:6px}.metric strong{font-size:21px}.hero strong{font-size:29px}
+.pos{color:#07864f}.neg{color:#d13b3b}.msg{display:none;margin-top:10px;padding:10px;border-radius:10px;background:#eaf8f0;color:#087445}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:610px}th,td{padding:10px 6px;border-bottom:1px solid #e5e7eb;text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}.scroll{overflow:auto}
+.del{width:auto;padding:6px 9px;background:#eef0f3;color:#333;font-size:12px}.empty{text-align:center!important;color:#777!important}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body><main>
+<h1>📈 每日股票損益</h1>
+<p>每天記錄總資產，入金／出金會自動排除，不會把定期定額誤算成獲利。</p>
+
+<section class="card"><h2>今日紀錄</h2>
+<div class="grid">
+<div><label>日期</label><input id="date" type="date"></div>
+<div><label>今日投資總資產</label><input id="asset" type="number" inputmode="decimal" placeholder="例如 2500000"></div>
+<div><label>今日外部入金</label><input id="deposit" type="number" inputmode="decimal" value="0"></div>
+<div><label>今日外部出金</label><input id="withdraw" type="number" inputmode="decimal" value="0"></div>
+</div>
+<p>總資產請填「股票目前市值＋投資帳戶內現金」。單純買股、賣股不用填入金／出金。</p>
+<button id="save">儲存今日紀錄</button><div id="msg" class="msg">✓ 已儲存</div>
+</section>
+
+<section class="card"><h2>績效</h2><div class="metrics">
+<div class="metric hero"><small>最新一日真正損益</small><strong id="daily">—</strong></div>
+<div class="metric"><small>本月累計損益</small><strong id="monthly">—</strong></div>
+<div class="metric"><small>今年累計損益</small><strong id="yearly">—</strong></div>
+<div class="metric"><small>目前總資產</small><strong id="current">—</strong></div>
+<div class="metric"><small>本月外部淨投入</small><strong id="flow">—</strong></div>
+</div></section>
+
+<section class="card"><h2>每日紀錄</h2><div class="scroll"><table>
+<thead><tr><th>日期</th><th>總資產</th><th>入金</th><th>出金</th><th>真正損益</th><th></th></tr></thead>
+<tbody id="rows"></tbody></table></div></section>
+</main>
+<script>
+const KEY="stock-profit-data-v1";
+const $=x=>document.getElementById(x);
+const money=n=>new Intl.NumberFormat("zh-TW",{maximumFractionDigits:0}).format(n);
+const sign=n=>(n>=0?"+":"")+money(n)+" 元";
+function get(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){return[]}}
+function set(a){localStorage.setItem(KEY,JSON.stringify(a))}
+function calculate(){
+ let a=get().sort((x,y)=>x.date.localeCompare(y.date));
+ return a.map((x,i)=>({...x,profit:i===0?null:x.asset-a[i-1].asset-x.deposit+x.withdraw}));
+}
+function color(e,n){e.className=n>=0?"pos":"neg"}
+function render(){
+ const a=calculate(), tbody=$("rows");tbody.innerHTML="";
+ if(!a.length){tbody.innerHTML='<tr><td colspan="6" class="empty">還沒有紀錄</td></tr>';["daily","monthly","yearly","current","flow"].forEach(x=>$(x).textContent="—");return}
+ [...a].reverse().forEach(x=>{
+   let tr=document.createElement("tr");
+   tr.innerHTML=`<td>${x.date}</td><td>${money(x.asset)}</td><td>${money(x.deposit)}</td><td>${money(x.withdraw)}</td><td class="${x.profit===null?"":x.profit>=0?"pos":"neg"}">${x.profit===null?"基準日":sign(x.profit)}</td><td><button class="del" data-d="${x.date}">刪除</button></td>`;
+   tbody.appendChild(tr);
+ });
+ document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{if(confirm("刪除 "+b.dataset.d+"？")){set(get().filter(x=>x.date!==b.dataset.d));render()}});
+ const last=a[a.length-1], month=last.date.slice(0,7), year=last.date.slice(0,4);
+ const ma=a.filter(x=>x.date.startsWith(month)), ya=a.filter(x=>x.date.startsWith(year));
+ const mp=ma.reduce((s,x)=>s+(x.profit||0),0), yp=ya.reduce((s,x)=>s+(x.profit||0),0);
+ const mf=ma.reduce((s,x)=>s+x.deposit-x.withdraw,0);
+ $("daily").textContent=last.profit===null?"基準日":sign(last.profit); if(last.profit!==null)color($("daily"),last.profit);
+ $("monthly").textContent=sign(mp);color($("monthly"),mp);
+ $("yearly").textContent=sign(yp);color($("yearly"),yp);
+ $("current").textContent=money(last.asset)+" 元";
+ $("flow").textContent=sign(mf);color($("flow"),mf);
+}
+$("save").onclick=()=>{
+ const date=$("date").value, av=$("asset").value;
+ if(!date||av===""){alert("請填日期與今日總資產");return}
+ const x={date,asset:Number(av),deposit:Number($("deposit").value||0),withdraw:Number($("withdraw").value||0)};
+ let a=get().filter(r=>r.date!==date);a.push(x);a.sort((x,y)=>x.date.localeCompare(y.date));set(a);
+ $("asset").value="";$("deposit").value="0";$("withdraw").value="0";render();
+ $("msg").style.display="block";setTimeout(()=>$("msg").style.display="none",1800);
+};
+const d=new Date();$("date").value=new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10);render();
+</script></body></html>
