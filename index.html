@@ -25,7 +25,7 @@ canvas{display:block;width:100%;height:220px}.scroll{overflow:auto}table{width:1
 @media(max-width:540px){.grid{grid-template-columns:1fr}.metric strong{font-size:19px}.hero strong{font-size:28px}}
 </style></head>
 <body><main>
-<h1>📈 每日股票損益 <span class="badge">FINAL</span></h1>
+<h1>📈 每日股票損益 <span class="badge">FINAL FIX</span></h1>
 <div class="sub">只追蹤股票市值，不必輸入證券帳戶現金；用買進／賣出金額校正資金變化。</div>
 
 <section class="card"><h2 id="formTitle">新增每日紀錄</h2>
@@ -115,7 +115,26 @@ function render(){
 function startEdit(d){let x=load().find(r=>r.date===d);if(!x)return;editing=d;$("date").value=x.date;$("market").value=x.market;$("buy").value=x.buy;$("sell").value=x.sell;$("dividend").value=x.dividend;$("formTitle").textContent="編輯 "+d;$("save").textContent="儲存修改";$("cancelEdit").style.display="block";scrollTo({top:0,behavior:"smooth"})}
 function resetForm(){editing=null;$("formTitle").textContent="新增每日紀錄";$("save").textContent="儲存紀錄";$("cancelEdit").style.display="none";$("market").value="";["buy","sell","dividend"].forEach(i=>$(i).value="0");let d=new Date();$("date").value=new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 $("cancelEdit").onclick=resetForm;
-$("save").onclick=()=>{let date=$("date").value,m=$("market").value;if(!date||m===""){alert("請填日期與股票總市值");return}let x={date,market:Number(m),buy:Number($("buy").value||0),sell:Number($("sell").value||0),dividend:Number($("dividend").value||0)};if(Object.values(x).slice(1).some(n=>!Number.isFinite(n)||n<0)){alert("金額格式不正確");return}let a=load().filter(r=>r.date!==(editing||date)&&r.date!==date);a.push(x);a.sort((x,y)=>x.date.localeCompare(y.date));saveData(a);resetForm();render();$("msg").textContent="✓ 已儲存";$("msg").style.display="block";setTimeout(()=>$("msg").style.display="none",1500)};
+function doSave(){
+ try{
+  var date=$("date").value, m=$("market").value;
+  if(!date||m===""){alert("請填日期與股票總市值");return;}
+  var x={date:date,market:Number(m),buy:Number($("buy").value||0),sell:Number($("sell").value||0),dividend:Number($("dividend").value||0)};
+  if(!isFinite(x.market)||!isFinite(x.buy)||!isFinite(x.sell)||!isFinite(x.dividend)||x.market<0||x.buy<0||x.sell<0||x.dividend<0){alert("金額格式不正確");return;}
+  var a=load().filter(function(r){return r.date!==(editing||date)&&r.date!==date;});
+  a.push(x); a.sort(function(a,b){return a.date.localeCompare(b.date);});
+  try{ localStorage.setItem(KEY,JSON.stringify(a)); }
+  catch(err){ alert("無法寫入手機儲存空間："+err.message); return; }
+  var verify=load().some(function(r){return r.date===date;});
+  if(!verify){alert("資料沒有成功寫入，請截圖這個訊息給我。");return;}
+  resetForm();
+  try{render();}catch(err){alert("資料已成功儲存，但畫面更新發生錯誤："+err.message);return;}
+  $("msg").textContent="✓ 已成功儲存到手機";
+  $("msg").style.display="block";
+  setTimeout(function(){$("msg").style.display="none";},1800);
+ }catch(err){alert("儲存程式錯誤："+err.message);}
+}
+$("save").addEventListener("click",doSave);
 $("export").onclick=()=>{let blob=new Blob([JSON.stringify({version:3,exported:new Date().toISOString(),records:load()},null,2)],{type:"application/json"}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="股票損益_v3_備份.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
 $("import").onclick=()=>$("file").click();$("file").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let j=JSON.parse(r.result),a=Array.isArray(j)?j:j.records;if(!Array.isArray(a))throw 0;if(confirm("匯入會覆蓋目前 v3 資料，確定？")){saveData(a);render();alert("還原完成")}}catch(e){alert("備份檔格式不正確")}};r.readAsText(f)};
 function setup(c){let d=devicePixelRatio||1,w=c.clientWidth||700,h=220;c.width=w*d;c.height=h*d;let x=c.getContext("2d");x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,w,h);return{x,w,h}}
